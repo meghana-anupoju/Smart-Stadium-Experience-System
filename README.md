@@ -1,16 +1,66 @@
-# React + Vite
+# Smart Stadium Experience System
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## 🚀 Overview
+Smart Stadium Experience System is an intelligent digital assistant designed to enhance the experience of attendees at large-scale sporting venues. It improves crowd movement, reduces waiting times, and provides real-time navigation and alerts.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## 🎯 Chosen Vertical
+This project focuses on the **Smart Venue / Event Experience** vertical, targeting stadium attendees and administrators.
 
-## React Compiler
+---
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## 🧠 Approach and Logic
+The system uses rule-based intelligent decision-making with simulated real-time data:
 
-## Expanding the ESLint configuration
+- If crowd density is high → suggest alternate routes  
+- If queue time is long → recommend nearby stalls  
+- If emergency occurs → guide users to safe exits  
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+Firebase is used for real-time updates and Google Maps API for navigation.
+
+---
+
+## ⚙️ Features
+- AI-based crowd monitoring (simulated data)  
+- Smart navigation with less crowded routes  
+- Real-time queue management  
+- Digital alerts and notifications  
+- Admin dashboard for crowd monitoring  
+
+---
+
+## 🛠️ Tech Stack
+- React + Vite  
+- Firebase (Realtime Database & Hosting)  
+- Google Maps API  
+- Google Cloud Run (Deployment)  
+
+---
+
+## 🌐 Live Demo
+https://stadium-ai-assistant-455356131916.us-central1.run.app/
+
+---
+
+## 🔄 How It Works
+1. User opens the app inside the stadium  
+2. System fetches simulated crowd and queue data  
+3. Provides optimized routes and suggestions  
+4. Sends real-time alerts and updates  
+5. Admin monitors and manages crowd through dashboard  
+
+---
+
+## 📌 Assumptions
+- Data is simulated (no real sensors used)  
+- Users have internet access  
+- Google Maps approximates indoor navigation  
+- Prototype designed for demonstration  
+
+---
+
+## 📦 Project Setup
+```bash
+npm install
+npm run dev
