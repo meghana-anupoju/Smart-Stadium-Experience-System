@@ -3,6 +3,4 @@ dist
 .git
 .gitignore
 .env
-Dockerfile
-nginx.conf
 README.md
