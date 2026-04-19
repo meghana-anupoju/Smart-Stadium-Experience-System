@@ -1,11 +1,14 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { Routes, Route, useLocation } from 'react-router-dom';
 import BottomNav from './components/BottomNav.jsx';
-import Home from './pages/Home.jsx';
-import Navigation from './pages/Navigation.jsx';
-import Food from './pages/Food.jsx';
-import Admin from './pages/Admin.jsx';
+import ProtectedRoute from './components/ProtectedRoute.jsx';
 import { useSimulator } from './store/SimulatorContext.jsx';
+
+// Route-level code splitting for efficiency
+const Home = lazy(() => import('./pages/Home.jsx'));
+const Navigation = lazy(() => import('./pages/Navigation.jsx'));
+const Food = lazy(() => import('./pages/Food.jsx'));
+const Admin = lazy(() => import('./pages/Admin.jsx'));
 
 function App() {
   const location = useLocation();
@@ -15,26 +18,26 @@ function App() {
   return (
     <div className={`app-container ${isEmergency ? 'emergency-mode' : ''}`}>
       {/* Dynamic Emergency Background Override */}
-      {isEmergency && (
-        <div style={{
-          position: 'fixed',
-          top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(239, 68, 68, 0.15)',
-          pointerEvents: 'none',
-          animation: 'pulse-glow 1s infinite alternate',
-          zIndex: 1000
-        }} />
-      )}
+      {isEmergency && <div className="emergency-overlay" aria-live="assertive" aria-label="Emergency evacuation in progress" />}
 
-      <div className="app-content">
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/nav" element={<Navigation />} />
-          <Route path="/food" element={<Food />} />
-          <Route path="/admin" element={<Admin />} />
-        </Routes>
-      </div>
-      
+      <main className="app-content">
+        <Suspense fallback={<div className="page-loader" role="status" aria-label="Loading page..."><div className="loader-spinner" /></div>}>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/nav" element={<Navigation />} />
+            <Route path="/food" element={<Food />} />
+            <Route
+              path="/admin"
+              element={
+                <ProtectedRoute>
+                  <Admin />
+                </ProtectedRoute>
+              }
+            />
+          </Routes>
+        </Suspense>
+      </main>
+
       {!isAdmin && <BottomNav />}
     </div>
   );

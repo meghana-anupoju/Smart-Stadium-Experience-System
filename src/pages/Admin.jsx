@@ -1,87 +1,165 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useSimulator } from '../store/SimulatorContext.jsx';
 import { AlertOctagon, Send } from 'lucide-react';
+
+// Strict input sanitizer — strips HTML tags and limits length
+const sanitizeInput = (str) => str.replace(/<[^>]*>/g, '').slice(0, 200);
 
 const Admin = () => {
   const { zones, pushAlert, triggerEmergency, clearEmergency, isEmergency } = useSimulator();
   const [message, setMessage] = useState('');
+  const [inputError, setInputError] = useState('');
 
-  const handleSendAlert = () => {
-    if (message.trim() === '') return;
-    pushAlert(message, 'info');
+  const handleMessageChange = useCallback((e) => {
+    const raw = e.target.value;
+    const sanitized = sanitizeInput(raw);
+    setMessage(sanitized);
+    if (raw !== sanitized) {
+      setInputError('HTML tags are not allowed in messages.');
+    } else if (raw.length > 200) {
+      setInputError('Message must be 200 characters or fewer.');
+    } else {
+      setInputError('');
+    }
+  }, []);
+
+  const handleSendAlert = useCallback(() => {
+    const trimmed = message.trim();
+    if (!trimmed || inputError) return;
+    pushAlert(trimmed, 'info');
     setMessage('');
+  }, [message, inputError, pushAlert]);
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') handleSendAlert();
   };
 
   return (
-    <div className="flex-col gap-4">
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--glass-border)', paddingBottom: '1rem' }}>
-        <h2 style={{ margin: 0 }}>Command Center</h2>
-        <span className="badge badge-warning">Admin Authorized</span>
+    <section aria-labelledby="admin-heading" className="flex-col gap-4">
+      <div className="flex-row justify-between admin-header">
+        <h1 id="admin-heading" style={{ margin: 0 }}>Command Center</h1>
+        <span className="badge badge-warning" role="status">Admin Authorized</span>
       </div>
 
-      <div className="glass-panel">
-        <h3>Live Crowd Density</h3>
-        <p className="text-muted" style={{ fontSize: '0.8rem', marginBottom: '1rem' }}>Data simulated from stadium sensors.</p>
-        
-        <div className="flex-col gap-2">
-          {zones.map(zone => (
-            <div key={zone.id} className="flex-col gap-2" style={{ marginBottom: '0.5rem' }}>
-              <div className="flex-row justify-between" style={{ fontSize: '0.9rem' }}>
-                <span>{zone.name}</span>
-                <span style={{ color: zone.density > 80 ? 'var(--danger)' : zone.density > 50 ? 'var(--warning)' : 'var(--success)' }}>
-                  {zone.density}% Capacity
-                </span>
-              </div>
-              <div style={{ width: '100%', height: '8px', background: 'rgba(255,255,255,0.1)', borderRadius: '4px', overflow: 'hidden' }}>
-                <div style={{ 
-                  width: `${zone.density}%`, 
-                  height: '100%', 
-                  background: zone.density > 80 ? 'var(--danger)' : zone.density > 50 ? 'var(--warning)' : 'var(--success)',
-                  transition: 'width 0.5s ease'
-                }} />
-              </div>
-            </div>
-          ))}
-        </div>
+      {/* Crowd Density */}
+      <div className="glass-panel" role="region" aria-labelledby="density-heading">
+        <h2 id="density-heading">Live Crowd Density</h2>
+        <p className="text-muted" style={{ fontSize: '0.8rem', marginBottom: '1rem' }}>
+          Data simulated from stadium sensors.
+        </p>
+
+        <ul aria-label="Zone crowd density levels" className="flex-col gap-2" style={{ listStyle: 'none', padding: 0 }}>
+          {zones.map(zone => {
+            const color = zone.density > 80 ? 'var(--danger)' : zone.density > 50 ? 'var(--warning)' : 'var(--success)';
+            const label = zone.density > 80 ? 'High' : zone.density > 50 ? 'Moderate' : 'Low';
+            return (
+              <li key={zone.id} className="flex-col gap-2" style={{ marginBottom: '0.5rem' }}>
+                <div className="flex-row justify-between" style={{ fontSize: '0.9rem' }}>
+                  <span>{zone.name}</span>
+                  <span style={{ color }} aria-label={`${zone.density}% capacity — ${label} crowd`}>
+                    {zone.density}% Capacity
+                  </span>
+                </div>
+                <div
+                  role="progressbar"
+                  aria-valuenow={zone.density}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-label={`${zone.name} crowd density`}
+                  style={{ width: '100%', height: '8px', background: 'rgba(255,255,255,0.1)', borderRadius: '4px', overflow: 'hidden' }}
+                >
+                  <div style={{
+                    width: `${zone.density}%`,
+                    height: '100%',
+                    background: color,
+                    transition: 'width 0.5s ease'
+                  }} />
+                </div>
+              </li>
+            );
+          })}
+        </ul>
       </div>
 
-      <div className="glass-panel">
-        <h3>Broadcast Alert</h3>
+      {/* Broadcast Alert */}
+      <div className="glass-panel" role="region" aria-labelledby="broadcast-heading">
+        <h2 id="broadcast-heading">Broadcast Alert</h2>
         <div className="flex-row gap-2 mt-4">
-          <input 
-            type="text" 
+          <label htmlFor="broadcast-input" className="sr-only">Message to broadcast to all users</label>
+          <input
+            id="broadcast-input"
+            type="text"
             value={message}
-            onChange={(e) => setMessage(e.target.value)}
+            onChange={handleMessageChange}
+            onKeyDown={handleKeyDown}
             placeholder="Type message to all users..."
-            style={{ flex: 1, padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--glass-border)', background: 'rgba(0,0,0,0.3)', color: 'white' }}
+            maxLength={200}
+            aria-describedby={inputError ? 'broadcast-error' : undefined}
+            aria-invalid={!!inputError}
+            style={{ flex: 1, padding: '0.75rem', borderRadius: '8px', border: `1px solid ${inputError ? 'var(--danger)' : 'var(--glass-border)'}`, background: 'rgba(0,0,0,0.3)', color: 'white' }}
           />
-          <button className="btn btn-primary" onClick={handleSendAlert}>
-            <Send size={18} />
+          <button
+            id="send-alert-btn"
+            className="btn btn-primary"
+            onClick={handleSendAlert}
+            disabled={!message.trim() || !!inputError}
+            aria-label="Send broadcast alert to all users"
+          >
+            <Send size={18} aria-hidden="true" />
           </button>
         </div>
+        {inputError && (
+          <p id="broadcast-error" role="alert" style={{ color: 'var(--danger)', fontSize: '0.8rem', marginTop: '0.5rem' }}>
+            {inputError}
+          </p>
+        )}
+        <p aria-live="polite" className="text-muted" style={{ fontSize: '0.75rem', marginTop: '0.5rem' }}>
+          {message.length}/200 characters
+        </p>
       </div>
 
-      <div className="glass-panel" style={{ borderColor: 'var(--danger)', background: 'rgba(239, 68, 68, 0.05)' }}>
-        <h3 style={{ color: 'var(--danger)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <AlertOctagon size={24} /> Emergency Controls
-        </h3>
-        <p className="text-muted" style={{ fontSize: '0.8rem', marginBottom: '1rem' }}>Triggering an emergency will override all user navigation features and guide them to nearest exits.</p>
-        
+      {/* Emergency Controls */}
+      <div
+        className="glass-panel"
+        role="region"
+        aria-labelledby="emergency-heading"
+        style={{ borderColor: 'var(--danger)', background: 'rgba(239, 68, 68, 0.05)' }}
+      >
+        <h2 id="emergency-heading" style={{ color: 'var(--danger)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <AlertOctagon size={24} aria-hidden="true" /> Emergency Controls
+        </h2>
+        <p className="text-muted" style={{ fontSize: '0.8rem', marginBottom: '1rem' }}>
+          Triggering an emergency will override all user navigation features and guide them to nearest exits.
+        </p>
+
         {isEmergency ? (
-          <button className="btn w-full" style={{ background: 'var(--success)', color: 'white' }} onClick={clearEmergency}>
+          <button
+            id="resolve-emergency-btn"
+            className="btn w-full"
+            style={{ background: 'var(--success)', color: 'white' }}
+            onClick={clearEmergency}
+            aria-label="Resolve emergency and return to normal operations"
+          >
             Resolve Emergency (All Clear)
           </button>
         ) : (
-          <button className="btn btn-danger pulse w-full" onClick={triggerEmergency}>
+          <button
+            id="trigger-emergency-btn"
+            className="btn btn-danger pulse w-full"
+            onClick={triggerEmergency}
+            aria-label="Trigger evacuation protocol for all stadium zones"
+          >
             TRIGGER EVACUATION PROTOCOL
           </button>
         )}
       </div>
-      
+
       <div className="text-center mt-4">
-        <a href="/" style={{ color: 'var(--text-muted)', textDecoration: 'none', fontSize: '0.8rem' }}>← Return to User View</a>
+        <a href="/" style={{ color: 'var(--text-muted)', textDecoration: 'none', fontSize: '0.8rem' }}>
+          ← Return to User View
+        </a>
       </div>
-    </div>
+    </section>
   );
 };
 

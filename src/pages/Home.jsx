@@ -1,44 +1,75 @@
 import React from 'react';
 import { useSimulator } from '../store/SimulatorContext.jsx';
 import { Bell, MapPin, Activity } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+
+const alertIconMap = {
+  danger: <Activity color="var(--danger)" aria-hidden="true" />,
+  warning: <Bell color="var(--warning)" aria-hidden="true" />,
+  info: <MapPin color="var(--primary)" aria-hidden="true" />,
+};
 
 const Home = () => {
   const { alerts, isEmergency } = useSimulator();
+  const navigate = useNavigate();
 
   return (
-    <div className="flex-col gap-4">
-      <div className="glass-panel" style={{ textAlign: 'center', marginBottom: '1rem', borderTop: '4px solid var(--primary)' }}>
+    <section aria-labelledby="home-heading" className="flex-col gap-4">
+      <h1 id="home-heading" className="sr-only">Smart Stadium Home</h1>
+
+      <div className="glass-panel ticket-panel" aria-label="Your stadium ticket">
         <h2 className="title-gradient">Stadium Pass</h2>
-        <div style={{ padding: '1rem', background: 'rgba(0,0,0,0.3)', borderRadius: '12px', display: 'inline-block', margin: '1rem 0' }}>
-          <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=Ticket12345&color=4f46e5&bgcolor=ffffff" alt="Ticket QR" style={{ borderRadius: '8px' }} />
+        <div className="qr-wrapper">
+          <img
+            src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=Ticket12345&color=4f46e5&bgcolor=ffffff"
+            alt="QR code for ticket number 12345"
+            width="150"
+            height="150"
+            style={{ borderRadius: '8px' }}
+          />
         </div>
         <p className="text-muted">Section 104 • Row H • Seat 23</p>
       </div>
 
       <div className="flex-row justify-between" style={{ alignItems: 'baseline' }}>
-        <h3>Live Updates</h3>
-        <span className="badge badge-success">Match in Progress</span>
+        <h2>Live Updates</h2>
+        <span className="badge badge-success" role="status" aria-live="polite">Match in Progress</span>
       </div>
 
-      <div className="flex-col gap-2">
+      <ul aria-label="Live stadium alerts" className="flex-col gap-2" style={{ listStyle: 'none', padding: 0 }}>
         {alerts.map((alert) => (
-          <div key={alert.id} className="glass-panel flex-row gap-2" style={{ padding: '1rem', borderColor: alert.type === 'danger' ? 'var(--danger)' : alert.type === 'warning' ? 'var(--warning)' : 'var(--glass-border)' }}>
-            {alert.type === 'danger' && <Activity color="var(--danger)" />}
-            {alert.type === 'warning' && <Bell color="var(--warning)" />}
-            {alert.type === 'info' && <MapPin color="var(--primary)" />}
+          <li
+            key={alert.id}
+            className="glass-panel flex-row gap-2 alert-item"
+            style={{
+              padding: '1rem',
+              borderColor: alert.type === 'danger' ? 'var(--danger)' : alert.type === 'warning' ? 'var(--warning)' : 'var(--glass-border)'
+            }}
+            role="alert"
+          >
+            {alertIconMap[alert.type] || alertIconMap.info}
             <div>
               <p style={{ fontSize: '0.9rem' }}>{alert.text}</p>
             </div>
-          </div>
+          </li>
         ))}
+      </ul>
+
+      <div className="glass-panel quick-steps-panel">
+        <h2>Quick Next Steps</h2>
+        <p className="text-muted" style={{ fontSize: '0.9rem', marginBottom: '1rem' }}>
+          It&apos;s half-time soon. Order food now to beat the rush!
+        </p>
+        <button
+          id="order-food-btn"
+          className="btn btn-primary w-full"
+          onClick={() => navigate('/food')}
+          aria-label="Go to food ordering page"
+        >
+          Order Food
+        </button>
       </div>
-      
-      <div className="glass-panel mt-4" style={{ background: 'linear-gradient(135deg, rgba(79, 70, 229, 0.2) 0%, rgba(14, 165, 233, 0.2) 100%)' }}>
-        <h4>Quick Next Steps</h4>
-        <p className="text-muted" style={{ fontSize: '0.9rem', marginBottom: '1rem' }}>It's half-time soon. Order food now to beat the rush!</p>
-        <button className="btn btn-primary w-full">Order Food</button>
-      </div>
-    </div>
+    </section>
   );
 };
 

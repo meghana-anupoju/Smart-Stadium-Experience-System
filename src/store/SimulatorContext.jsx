@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
+import { logSimulatedEvent } from '../firebase.js';
 
 const SimulatorContext = createContext();
 
@@ -59,26 +60,31 @@ export const SimulatorProvider = ({ children }) => {
     }
   }, [zones]);
 
-  const pushAlert = (text, type = 'info', id = Date.now().toString()) => {
+  const pushAlert = useCallback((text, type = 'info', id = Date.now().toString()) => {
     setAlerts(prev => [{ id, text, type }, ...prev]);
-  };
+    logSimulatedEvent('alert_pushed', { type, text });
+  }, []);
 
-  const triggerEmergency = () => {
+  const triggerEmergency = useCallback(() => {
     setIsEmergency(true);
     pushAlert('EMERGENCY EVACUATION: Please follow the flashing paths to the nearest exit immediately.', 'danger', 'emergency-alert');
-  };
+    logSimulatedEvent('emergency_triggered', { timestamp: new Date().toISOString() });
+  }, [pushAlert]);
 
-  const clearEmergency = () => {
+  const clearEmergency = useCallback(() => {
     setIsEmergency(false);
     setAlerts(prev => prev.filter(a => a.id !== 'emergency-alert'));
     pushAlert('Emergency resolved. Returning to normal operations.', 'success');
-  };
+    logSimulatedEvent('emergency_cleared', { timestamp: new Date().toISOString() });
+  }, [pushAlert]);
+
+  const contextValue = useMemo(() => ({
+    zones, stalls, alerts, isEmergency,
+    pushAlert, triggerEmergency, clearEmergency
+  }), [zones, stalls, alerts, isEmergency, pushAlert, triggerEmergency, clearEmergency]);
 
   return (
-    <SimulatorContext.Provider value={{
-      zones, stalls, alerts, isEmergency,
-      pushAlert, triggerEmergency, clearEmergency
-    }}>
+    <SimulatorContext.Provider value={contextValue}>
       {children}
     </SimulatorContext.Provider>
   );
