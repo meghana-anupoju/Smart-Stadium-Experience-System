@@ -1,14 +1,22 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useSimulator } from '../store/SimulatorContext.jsx';
-import { AlertOctagon, Send } from 'lucide-react';
+import { AlertOctagon, Send, LogOut, User } from 'lucide-react';
+import { logAnalyticsEvent } from '../firebase.js';
+import { useAuth } from '../store/AuthContext.jsx';
 
 // Strict input sanitizer — strips HTML tags and limits length
 const sanitizeInput = (str) => str.replace(/<[^>]*>/g, '').slice(0, 200);
 
 const Admin = () => {
   const { zones, pushAlert, triggerEmergency, clearEmergency, isEmergency } = useSimulator();
+  const { user, logout } = useAuth();
   const [message, setMessage] = useState('');
   const [inputError, setInputError] = useState('');
+
+  // Analytics: page view
+  useEffect(() => {
+    logAnalyticsEvent('page_view', { page_title: 'Admin Command Center', page_path: '/admin' });
+  }, []);
 
   const handleMessageChange = useCallback((e) => {
     const raw = e.target.value;
@@ -27,6 +35,7 @@ const Admin = () => {
     const trimmed = message.trim();
     if (!trimmed || inputError) return;
     pushAlert(trimmed, 'info');
+    logAnalyticsEvent('admin_broadcast', { message_length: trimmed.length });
     setMessage('');
   }, [message, inputError, pushAlert]);
 
@@ -34,18 +43,46 @@ const Admin = () => {
     if (e.key === 'Enter') handleSendAlert();
   };
 
+  const handleLogout = async () => {
+    logAnalyticsEvent('admin_logout');
+    await logout();
+  };
+
   return (
     <section aria-labelledby="admin-heading" className="flex-col gap-4">
+
+      {/* Header */}
       <div className="flex-row justify-between admin-header">
         <h1 id="admin-heading" style={{ margin: 0 }}>Command Center</h1>
-        <span className="badge badge-warning" role="status">Admin Authorized</span>
+        <span className="badge badge-warning" role="status">Admin</span>
       </div>
+
+      {/* Logged-in user chip */}
+      {user && (
+        <div className="glass-panel flex-row justify-between" style={{ padding: '0.75rem 1rem' }}>
+          <div className="flex-row gap-2">
+            <User size={16} aria-hidden="true" color="var(--text-muted)" />
+            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+              {user.displayName || user.email || 'Admin User'}
+            </span>
+          </div>
+          <button
+            id="logout-btn"
+            className="btn"
+            onClick={handleLogout}
+            style={{ padding: '0.4rem 0.75rem', fontSize: '0.8rem', background: 'rgba(239,68,68,0.1)', color: 'var(--danger)', border: '1px solid rgba(239,68,68,0.2)' }}
+            aria-label="Sign out of admin account"
+          >
+            <LogOut size={14} aria-hidden="true" /> Sign Out
+          </button>
+        </div>
+      )}
 
       {/* Crowd Density */}
       <div className="glass-panel" role="region" aria-labelledby="density-heading">
         <h2 id="density-heading">Live Crowd Density</h2>
         <p className="text-muted" style={{ fontSize: '0.8rem', marginBottom: '1rem' }}>
-          Data simulated from stadium sensors.
+          Data simulated from stadium sensors — synced to Firestore.
         </p>
 
         <ul aria-label="Zone crowd density levels" className="flex-col gap-2" style={{ listStyle: 'none', padding: 0 }}>
@@ -65,15 +102,10 @@ const Admin = () => {
                   aria-valuenow={zone.density}
                   aria-valuemin={0}
                   aria-valuemax={100}
-                  aria-label={`${zone.name} crowd density`}
+                  aria-label={`${zone.name} crowd density: ${zone.density}%`}
                   style={{ width: '100%', height: '8px', background: 'rgba(255,255,255,0.1)', borderRadius: '4px', overflow: 'hidden' }}
                 >
-                  <div style={{
-                    width: `${zone.density}%`,
-                    height: '100%',
-                    background: color,
-                    transition: 'width 0.5s ease'
-                  }} />
+                  <div style={{ width: `${zone.density}%`, height: '100%', background: color, transition: 'width 0.5s ease' }} />
                 </div>
               </li>
             );
@@ -152,12 +184,6 @@ const Admin = () => {
             TRIGGER EVACUATION PROTOCOL
           </button>
         )}
-      </div>
-
-      <div className="text-center mt-4">
-        <a href="/" style={{ color: 'var(--text-muted)', textDecoration: 'none', fontSize: '0.8rem' }}>
-          ← Return to User View
-        </a>
       </div>
     </section>
   );

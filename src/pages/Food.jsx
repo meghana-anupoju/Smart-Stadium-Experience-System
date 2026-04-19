@@ -1,24 +1,39 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useSimulator } from '../store/SimulatorContext.jsx';
 import { Clock, CheckCircle } from 'lucide-react';
+import { logAnalyticsEvent, saveOrderToFirestore } from '../firebase.js';
 
 const Food = () => {
   const { stalls } = useSimulator();
   const [orderStall, setOrderStall] = useState(null);
   const [orderComplete, setOrderComplete] = useState(false);
+  const [orderToken, setOrderToken] = useState('#A492');
 
   const sortedStalls = [...stalls].sort((a, b) => a.waitTime - b.waitTime);
 
-  const handleOrder = (stallId) => {
-    setOrderStall(stallId);
+  // Analytics: page view
+  useEffect(() => {
+    logAnalyticsEvent('page_view', { page_title: 'Food & Facilities', page_path: '/food' });
+  }, []);
+
+  const handleOrder = useCallback(async (stall) => {
+    setOrderStall(stall.id);
+    logAnalyticsEvent('food_order_initiated', { stall_id: stall.id, stall_name: stall.name, wait_time: stall.waitTime });
+
+    // Save order to Firestore
+    const docId = await saveOrderToFirestore(stall.id, stall.name, stall.waitTime);
+    const token = `#A${Math.floor(Math.random() * 900 + 100)}`;
+    setOrderToken(token);
+
     setTimeout(() => {
       setOrderComplete(true);
+      logAnalyticsEvent('food_order_completed', { stall_id: stall.id, token });
       setTimeout(() => {
         setOrderComplete(false);
         setOrderStall(null);
       }, 3000);
     }, 1000);
-  };
+  }, []);
 
   return (
     <section aria-labelledby="food-heading" className="flex-col gap-4">
@@ -37,7 +52,7 @@ const Food = () => {
           <CheckCircle size={48} color="var(--success)" aria-hidden="true" style={{ margin: '0 auto 1rem', display: 'block' }} />
           <h2>Order Reserved!</h2>
           <p>
-            Your token is <strong>#A492</strong>. Proceed to pick up lane when ready.
+            Your token is <strong>{orderToken}</strong>. Proceed to pick up lane when ready.
           </p>
         </div>
       )}
@@ -71,7 +86,7 @@ const Food = () => {
               <button
                 id={`reserve-btn-${stall.id}`}
                 className="btn btn-primary"
-                onClick={() => handleOrder(stall.id)}
+                onClick={() => handleOrder(stall)}
                 disabled={orderStall === stall.id}
                 aria-label={`Reserve spot at ${stall.name}, wait time ${stall.waitTime} minutes`}
                 aria-busy={orderStall === stall.id}

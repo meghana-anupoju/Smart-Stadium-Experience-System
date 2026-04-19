@@ -5,9 +5,18 @@ import { MemoryRouter } from 'react-router-dom';
 
 // Mock firebase before importing anything that uses it
 vi.mock('../firebase.js', () => ({
-  logSimulatedEvent: vi.fn(),
-  saveSimulatedData: vi.fn(),
+  logAnalyticsEvent: vi.fn(),
+  saveAlertToFirestore: vi.fn().mockResolvedValue('mock-id'),
+  subscribeToAlerts: vi.fn().mockReturnValue(() => {}),
+  saveCrowdSnapshot: vi.fn(),
+  saveOrderToFirestore: vi.fn().mockResolvedValue('mock-order-id'),
   default: {},
+}));
+
+// Mock AuthContext so ProtectedRoute doesn't need real Firebase Auth
+vi.mock('../store/AuthContext.jsx', () => ({
+  useAuth: () => ({ user: null, authLoading: false, isAdmin: false, authError: '' }),
+  AuthProvider: ({ children }) => children,
 }));
 
 import App from '../App.jsx';
@@ -42,11 +51,10 @@ describe('App routing', () => {
     expect(await screen.findByText(/Live Map/i)).toBeTruthy();
   });
 
-  it('renders admin gate when not authorized at /admin route', async () => {
-    // Clear any leftover session auth
-    sessionStorage.removeItem('adminAuthorized');
+  it('renders admin login page when not authenticated at /admin route', async () => {
+    // AuthContext is mocked to return isAdmin: false
     renderApp('/admin');
-    expect(await screen.findByText(/Access Restricted/i)).toBeTruthy();
+    expect(await screen.findByText(/Admin Login/i)).toBeTruthy();
   });
 
   it('shows BottomNav on non-admin pages', async () => {

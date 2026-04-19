@@ -5,8 +5,11 @@ import { MemoryRouter } from 'react-router-dom';
 
 // Mock firebase before importing anything that uses it
 vi.mock('../firebase.js', () => ({
-  logSimulatedEvent: vi.fn(),
-  saveSimulatedData: vi.fn(),
+  logAnalyticsEvent: vi.fn(),
+  saveAlertToFirestore: vi.fn().mockResolvedValue('mock-id'),
+  subscribeToAlerts: vi.fn().mockReturnValue(() => {}),
+  saveCrowdSnapshot: vi.fn(),
+  saveOrderToFirestore: vi.fn().mockResolvedValue('mock-order-id'),
   default: {},
 }));
 

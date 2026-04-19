@@ -1,8 +1,14 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useSimulator } from '../store/SimulatorContext.jsx';
+import { logAnalyticsEvent } from '../firebase.js';
 
 const Navigation = () => {
   const { zones, isEmergency } = useSimulator();
+
+  // Analytics: page view + recommended route
+  useEffect(() => {
+    logAnalyticsEvent('page_view', { page_title: 'Live Map', page_path: '/nav' });
+  }, []);
 
   const leastCrowdedGate = zones
     .filter(z => z.id.includes('gate'))

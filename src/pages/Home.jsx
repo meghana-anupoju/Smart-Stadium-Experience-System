@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useSimulator } from '../store/SimulatorContext.jsx';
 import { Bell, MapPin, Activity } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { logAnalyticsEvent } from '../firebase.js';
 
 const alertIconMap = {
   danger: <Activity color="var(--danger)" aria-hidden="true" />,
@@ -12,6 +13,11 @@ const alertIconMap = {
 const Home = () => {
   const { alerts, isEmergency } = useSimulator();
   const navigate = useNavigate();
+
+  // Analytics: track page view
+  useEffect(() => {
+    logAnalyticsEvent('page_view', { page_title: 'Home', page_path: '/' });
+  }, []);
 
   return (
     <section aria-labelledby="home-heading" className="flex-col gap-4">
@@ -63,7 +69,10 @@ const Home = () => {
         <button
           id="order-food-btn"
           className="btn btn-primary w-full"
-          onClick={() => navigate('/food')}
+          onClick={() => {
+            logAnalyticsEvent('cta_click', { button: 'order_food', source: 'home' });
+            navigate('/food');
+          }}
           aria-label="Go to food ordering page"
         >
           Order Food

@@ -1,54 +1,24 @@
 import React from 'react';
-import { Navigate } from 'react-router-dom';
+import { useAuth } from '../store/AuthContext.jsx';
+import AdminLogin from './AdminLogin.jsx';
 
 /**
- * ProtectedRoute: Guards admin-only routes.
- * Checks sessionStorage for 'adminAuthorized' flag.
- * To access admin, open browser console and run:
- *   sessionStorage.setItem('adminAuthorized', 'true')
+ * ProtectedRoute: Guards admin-only routes using Firebase Auth.
+ * Shows AdminLogin if the user is not authenticated.
  */
 const ProtectedRoute = ({ children }) => {
-  const isAuthorized = sessionStorage.getItem('adminAuthorized') === 'true';
+  const { isAdmin, authLoading } = useAuth();
 
-  if (!isAuthorized) {
+  if (authLoading) {
     return (
-      <div
-        role="alert"
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          height: '70vh',
-          gap: '1rem',
-          textAlign: 'center',
-          padding: '2rem',
-        }}
-      >
-        <span style={{ fontSize: '3rem' }}>🔒</span>
-        <h2>Access Restricted</h2>
-        <p style={{ color: 'var(--text-muted)', maxWidth: '280px' }}>
-          This area is for authorized staff only. Please log in with admin credentials.
-        </p>
-        <button
-          className="btn btn-primary"
-          onClick={() => {
-            const pin = prompt('Enter admin PIN:');
-            if (pin === '1234') {
-              sessionStorage.setItem('adminAuthorized', 'true');
-              window.location.reload();
-            } else if (pin !== null) {
-              alert('Incorrect PIN. Access denied.');
-            }
-          }}
-        >
-          Staff Login
-        </button>
-        <a href="/" style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-          ← Return to Home
-        </a>
+      <div className="page-loader" role="status" aria-label="Checking authorization...">
+        <div className="loader-spinner" />
       </div>
     );
+  }
+
+  if (!isAdmin) {
+    return <AdminLogin />;
   }
 
   return children;
